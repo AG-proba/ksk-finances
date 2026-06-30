@@ -1,62 +1,107 @@
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <title>Финансы КСК</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f4f4f4; }
-        header { background: #007bff; color: white; padding: 20px; text-align: center; }
+        header { background: #007bff; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
         .container { max-width: 900px; margin: 20px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         table { width: 100%; border-collapse: collapse; margin: 15px 0; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
         th { background: #007bff; color: white; }
-        .btn { background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; cursor: pointer; }
-        .auth { margin: 10px 0; }
-        .hidden { display: none; }
+        .btn { background: #28a745; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
+        .edit-btn { background: #ffc107; }
+        input { width: 100%; padding: 5px; box-sizing: border-box; }
     </style>
 </head>
 <body>
     <header>
         <h1>Финансы КСК</h1>
-        <p>Прозрачная отчётность</p>
+        <button class="btn" onclick="login()">Админ</button>
     </header>
     <div class="container">
-        <div class="auth">
-            <button class="btn" onclick="login()">Войти как администратор</button>
-        </div>
-
-        <div id="content" class="hidden">
-            <h2>Текущий баланс</h2>
-            <p><strong>XXX 000 ₸</strong></p>
-            
-            <h2>Ежемесячные сборы</h2>
-            <table>
-                <tr><th>Квартира</th><th>Сумма</th></tr>
-                <tr><td>2-комнатная</td><td>2 000 ₸</td></tr>
-                <tr><td>3-комнатная</td><td>3 000 ₸</td></tr>
-            </table>
-            
-            <h2>Ежемесячные расходы</h2>
-            <table>
-                <tr><th>Статья</th><th>Сумма</th></tr>
-                <tr><td>Уборка территории</td><td>20 000 ₸</td></tr>
-                <tr><td>Уборка подъезда</td><td>20 000 ₸</td></tr>
-                <tr><td>Обслуживание лифта</td><td>10 000 ₸</td></tr>
-            </table>
-        </div>
+        <h2>Текущий баланс</h2>
+        <p><strong id="balance">XXX 000 ₸</strong></p>
+        
+        <h2>Ежемесячные сборы (доходы)</h2>
+        <table id="income-table">
+            <tr><th>Квартира</th><th>Сумма</th></tr>
+        </table>
+        <p><strong>Итого доход: <span id="total-income">0 ₸</span></strong></p>
+        
+        <h2>Ежемесячные расходы</h2>
+        <table id="expense-table">
+            <tr><th>Статья</th><th>Сумма</th></tr>
+        </table>
+        <p><strong>Итого расход: <span id="total-expense">0 ₸</span></strong></p>
     </div>
 
     <script>
+        let isAdmin = false;
+        let data = {
+            income: { twoRoom: 2000, threeRoom: 3000 },
+            expense: { territory: 20000, entrance: 20000, elevator: 10000 }
+        };
+
+        // Загрузка из localStorage
+        if (localStorage.getItem('kskData')) {
+            data = JSON.parse(localStorage.getItem('kskData'));
+        }
+
+        function saveData() {
+            localStorage.setItem('kskData', JSON.stringify(data));
+            render();
+        }
+
+        function render() {
+            // Доходы
+            const incomeHTML = `
+                <tr><td>2-комнатная</td><td>${isAdmin ? `<input type="number" value="${data.income.twoRoom}" onchange="updateIncome('twoRoom', this.value)">` : data.income.twoRoom} ₸</td></tr>
+                <tr><td>3-комнатная</td><td>${isAdmin ? `<input type="number" value="${data.income.threeRoom}" onchange="updateIncome('threeRoom', this.value)">` : data.income.threeRoom} ₸</td></tr>
+            `;
+            document.getElementById('income-table').innerHTML = `<tr><th>Квартира</th><th>Сумма</th></tr>` + incomeHTML;
+            
+            const totalIncome = 18 * data.income.twoRoom + 18 * data.income.threeRoom;
+            document.getElementById('total-income').textContent = totalIncome + ' ₸';
+
+            // Расходы
+            const expenseHTML = `
+                <tr><td>Уборка территории</td><td>${isAdmin ? `<input type="number" value="${data.expense.territory}" onchange="updateExpense('territory', this.value)">` : data.expense.territory} ₸</td></tr>
+                <tr><td>Уборка подъезда</td><td>${isAdmin ? `<input type="number" value="${data.expense.entrance}" onchange="updateExpense('entrance', this.value)">` : data.expense.entrance} ₸</td></tr>
+                <tr><td>Обслуживание лифта</td><td>${isAdmin ? `<input type="number" value="${data.expense.elevator}" onchange="updateExpense('elevator', this.value)">` : data.expense.elevator} ₸</td></tr>
+            `;
+            document.getElementById('expense-table').innerHTML = `<tr><th>Статья</th><th>Сумма</th></tr>` + expenseHTML;
+            
+            const totalExpense = data.expense.territory + data.expense.entrance + data.expense.elevator;
+            document.getElementById('total-expense').textContent = totalExpense + ' ₸';
+        }
+
+        function updateIncome(key, value) {
+            data.income[key] = parseInt(value) || 0;
+            saveData();
+        }
+
+        function updateExpense(key, value) {
+            data.expense[key] = parseInt(value) || 0;
+            saveData();
+        }
+
         function login() {
-            const pass = prompt("Введите пароль:");
-            if (pass === "admin123") {  // можешь поменять пароль
-                document.getElementById("content").classList.remove("hidden");
+            const pass = prompt("Введите пароль (admin123):");
+            if (pass === "admin123") {
+                isAdmin = true;
+                alert("Режим администратора включён. Теперь можно редактировать суммы.");
+                render();
             } else {
                 alert("Неверный пароль");
             }
         }
+
+        // Инициализация
+        render();
     </script>
 </body>
 </html>
